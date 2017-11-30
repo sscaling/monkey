@@ -8,8 +8,12 @@ type Token struct {
 }
 
 const (
+	IDENT   = "IDENT"
+	INTEGER = "INTEGER"
+	EQUALS  = "="
 	LPAREN  = "("
 	RPAREN  = ")"
-	EOF     = ""
-	ILLEGAL = ""
+
+	EOF     = "EOF"
+	ILLEGAL = "ILLEGAL"
 )

@@ -1,7 +1,6 @@
 package lexer
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/sscaling/monkey/token"
@@ -16,22 +15,31 @@ func TestIllegalChar(t *testing.T) {
 
 func TestBasicLex(t *testing.T) {
 
-	input := "()"
+	input := `let x = 10`
 	l := New(input)
 
-	expected := []token.TokenType{
-		token.LPAREN,
-		token.RPAREN,
-		token.EOF,
+	e := []struct {
+		expectedType    token.TokenType
+		expectedLiteral string
+	}{
+		{token.IDENT, "let"},
+		{token.IDENT, "x"},
+		{token.EQUALS, "="},
+		{token.INTEGER, "10"},
+		{token.EOF, ""},
 	}
 
-	for i, e := range expected {
-		fmt.Printf("item %d, expected '%v'", i, e)
+	for i, tt := range e {
+		//		fmt.Printf("item %d, expected '%v'", i, e)
 
-		tt := l.NextToken().Type
-		fmt.Printf(", token: '%v'\n", tt)
-		if tt != e {
-			t.Fatalf("Unexpected token '%v' found at position %d\n", tt, i)
+		tok := l.NextToken()
+		//	fmt.Printf(", token: '%v'\n", tt)
+		if tt.expectedLiteral != tok.Literal {
+			t.Fatalf("Unexpected literal '%v' found, expected '%v' at position %d\n", tok.Literal, tt.expectedLiteral, i)
+		}
+
+		if tt.expectedType != tok.Type {
+			t.Fatalf("Unexpected type '%v' found, expected '%v' at position %d\n", tok.Type, tt.expectedType, i)
 		}
 	}
 }
