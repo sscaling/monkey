@@ -10,6 +10,6 @@ type Token struct {
 const (
 	LPAREN  = "("
 	RPAREN  = ")"
-	EOF     = " "
-	ILLEGAL = " "
+	EOF     = ""
+	ILLEGAL = ""
 )

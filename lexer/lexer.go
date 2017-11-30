@@ -24,18 +24,27 @@ func (l *Lexer) readChar() {
 	l.currPosition += 1
 }
 
-func (l *Lexer) NextToken() token.Token {
+func (l *Lexer) NextToken() *token.Token {
 
-	t := token.Token{}
+	var t *token.Token
 
 	switch {
+	case 0 == l.ch:
+		// Return immediately, do not continue processing
+		return newToken(token.EOF, l.ch)
 	case '(' == l.ch:
-		t = token.Token{Type: token.LPAREN}
+		t = newToken(token.LPAREN, l.ch)
 	case ')' == l.ch:
-		t = token.Token{Type: token.RPAREN}
+		t = newToken(token.RPAREN, l.ch)
+	default:
+		t = newToken(token.ILLEGAL, l.ch)
 	}
 
 	l.readChar()
 
 	return t
+}
+
+func newToken(t token.TokenType, literal byte) *token.Token {
+	return &token.Token{Type: t, Literal: string(literal)}
 }
