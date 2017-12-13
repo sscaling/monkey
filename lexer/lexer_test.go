@@ -22,9 +22,9 @@ func TestBasicLex(t *testing.T) {
 		expectedType    token.TokenType
 		expectedLiteral string
 	}{
-		{token.IDENT, "let"},
+		{token.LET, "let"},
 		{token.IDENT, "x"},
-		{token.EQUALS, "="},
+		{token.ASSIGN, "="},
 		{token.INTEGER, "10"},
 		{token.EOF, ""},
 	}

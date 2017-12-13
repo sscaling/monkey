@@ -1,6 +1,8 @@
 package lexer
 
 import (
+	"fmt"
+
 	"github.com/sscaling/monkey/token"
 )
 
@@ -47,22 +49,62 @@ func (l *Lexer) NextToken() token.Token {
 	l.eatWhitespace()
 
 	switch {
+	case '=' == l.ch:
+		if l.peakChar() == '=' {
+			l.readChar()
+			t.Type = token.EQUALS
+			t.Literal = "=="
+		} else {
+			t = newToken(token.ASSIGN, l.ch)
+		}
+	case '!' == l.ch:
+		if l.peakChar() == '=' {
+			l.readChar()
+			t.Type = token.NOT_EQUAL
+			t.Literal = "!="
+		} else {
+			t = newToken(token.NOT, l.ch)
+		}
+	case '+' == l.ch:
+		t = newToken(token.PLUS, l.ch)
 	case '(' == l.ch:
 		t = newToken(token.LPAREN, l.ch)
 	case ')' == l.ch:
 		t = newToken(token.RPAREN, l.ch)
-	case '=' == l.ch:
-		t = newToken(token.EQUALS, l.ch)
-	case isInteger(l.ch):
-		return l.readInteger()
-	case isLetter(l.ch):
-		// return immediately as readIdentifier has already moved onto the next position
-		return l.readIdentifier()
+	case '{' == l.ch:
+		t = newToken(token.LBRACE, l.ch)
+	case '}' == l.ch:
+		t = newToken(token.RBRACE, l.ch)
+	case '+' == l.ch:
+		t = newToken(token.PLUS, l.ch)
+	case '-' == l.ch:
+		t = newToken(token.MINUS, l.ch)
+	case '*' == l.ch:
+		t = newToken(token.MULTIPLY, l.ch)
+	case '/' == l.ch:
+		t = newToken(token.DIVIDE, l.ch)
+	case '<' == l.ch:
+		t = newToken(token.LESS_THAN, l.ch)
+	case '>' == l.ch:
+		t = newToken(token.GREATER_THAN, l.ch)
+	case ',' == l.ch:
+		t = newToken(token.COMMA, l.ch)
+	case ';' == l.ch:
+		t = newToken(token.SEMI_COLON, l.ch)
 	case 0 == l.ch:
 		t.Literal = ""
 		t.Type = token.EOF
 	default:
-		t = newToken(token.ILLEGAL, l.ch)
+		if isInteger(l.ch) {
+			return l.readInteger()
+		} else if isLetter(l.ch) {
+			// return immediately as readIdentifier has already moved onto the next position
+			t.Literal = l.readIdentifier()
+			t.Type = token.LookupIdentifier(t.Literal)
+			return t
+		} else {
+			t = newToken(token.ILLEGAL, l.ch)
+		}
 	}
 
 	l.readChar()
@@ -70,28 +112,29 @@ func (l *Lexer) NextToken() token.Token {
 	return t
 }
 
-func (l *Lexer) readIdentifier() token.Token {
-	ident := make([]byte, 0)
+func (l *Lexer) readIdentifier() string {
+	start := l.currPosition - 1
 	for isLetter(l.ch) {
-		ident = append(ident, l.ch)
 		l.readChar()
 	}
 
-	return token.Token{Type: token.IDENT, Literal: string(ident)}
+	return l.input[start:(l.currPosition - 1)]
 }
 
 func isLetter(ch byte) bool {
-	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
+	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_'
 }
 
 func (l *Lexer) readInteger() token.Token {
-	integer := make([]byte, 0)
+	start := l.currPosition - 1
 	for isInteger(l.ch) {
-		integer = append(integer, l.ch)
 		l.readChar()
 	}
 
-	return token.Token{Type: token.INTEGER, Literal: string(integer)}
+	for i, x := range l.input {
+		fmt.Printf("%03d: %c\n", i, x)
+	}
+	return token.Token{Type: token.INTEGER, Literal: l.input[start:(l.currPosition - 1)]}
 }
 
 func isInteger(ch byte) bool {
