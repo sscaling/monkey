@@ -64,7 +64,7 @@ func TestBasicLex(t *testing.T) {
 		{token.COMMA, ","},
 		{token.IDENT, "y"},
 		{token.RPAREN, ")"},
-		{token.RBRACE, "{"},
+		{token.LBRACE, "{"},
 		{token.IDENT, "x"},
 		{token.PLUS, "+"},
 		{token.IDENT, "y"},
@@ -74,17 +74,17 @@ func TestBasicLex(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	for i, tt := range e {
+	for _, tt := range e {
 		//		fmt.Printf("item %d, expected '%v'", i, e)
 
 		tok := l.NextToken()
 		//	fmt.Printf(", token: '%v'\n", tt)
 		if tt.expectedLiteral != tok.Literal {
-			t.Fatalf("Unexpected literal '%v' found, expected '%v' at position %d\n", tok.Literal, tt.expectedLiteral, i)
+			t.Fatalf("Unexpected literal '%v' found, expected '%v' at position %d:%d\n", tok.Literal, tt.expectedLiteral, tok.Line, tok.Column)
 		}
 
 		if tt.expectedType != tok.Type {
-			t.Fatalf("Unexpected type '%v' found, expected '%v' at position %d\n", tok.Type, tt.expectedType, i)
+			t.Fatalf("Unexpected type '%v' found, expected '%v' at position %d:%d\n", tok.Type, tt.expectedType, tok.Line, tok.Column)
 		}
 	}
 }

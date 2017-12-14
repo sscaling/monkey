@@ -9,12 +9,14 @@ import (
 type Lexer struct {
 	input        string
 	position     int // need to track both position and currPosition for slicing the input data
+	line         int
+	column       int
 	readPosition int
 	ch           byte
 }
 
 func New(program string) *Lexer {
-	l := &Lexer{input: program}
+	l := &Lexer{input: program, line: 1, column: 1}
 	l.readChar()
 	return l
 }
@@ -28,20 +30,41 @@ func (l *Lexer) Debug() {
 		}
 	}
 
-	for i, x := range l.input {
-
-		if i%8 == 0 {
-			fmt.Printf("\n%05d: ", i)
+	line := 1
+	column := 0
+	fmt.Printf("\n%05d: ", line)
+	for _, x := range l.input {
+		if x == '\n' {
+			line += 1
+			column = 0
+			fmt.Printf("\n%05d: ", line)
+		} else if column > 0 && column%10 == 0 {
+			fmt.Printf("|%04d|", column)
 		}
-		fmt.Printf("%c ", charOrWhitespace(x))
+
+		fmt.Printf("%c", charOrWhitespace(x))
+
+		column += 1
 	}
 }
 
 func (l *Lexer) readChar() {
+	// if previous character was a new line, reset position counters
+	if l.ch == '\n' {
+		l.line += 1
+		l.column = 1
+	}
+
 	if l.readPosition >= len(l.input) {
 		l.ch = 0
 	} else {
 		l.ch = l.input[l.readPosition]
+
+		// for any character, other than carriage return, assume we increment one column
+		// in the input. NOTE: this may not be suitable for tabs?
+		if l.ch != '\r' {
+			l.column += 1
+		}
 	}
 	// Always set the position and increase the readPosition as this is used for slicing the input data
 	l.position = l.readPosition
@@ -65,6 +88,8 @@ func (l *Lexer) eatWhitespace() {
 func (l *Lexer) NextToken() token.Token {
 
 	var t token.Token
+	t.Line = l.line
+	t.Column = l.column
 
 	l.eatWhitespace()
 
@@ -75,7 +100,7 @@ func (l *Lexer) NextToken() token.Token {
 			t.Type = token.EQUALS
 			t.Literal = "=="
 		} else {
-			t = newToken(token.ASSIGN, l.ch)
+			t = newToken(token.ASSIGN, l)
 		}
 	case '!' == l.ch:
 		if l.peakChar() == '=' {
@@ -83,34 +108,34 @@ func (l *Lexer) NextToken() token.Token {
 			t.Type = token.NOT_EQUAL
 			t.Literal = "!="
 		} else {
-			t = newToken(token.NOT, l.ch)
+			t = newToken(token.NOT, l)
 		}
 	case '+' == l.ch:
-		t = newToken(token.PLUS, l.ch)
+		t = newToken(token.PLUS, l)
 	case '(' == l.ch:
-		t = newToken(token.LPAREN, l.ch)
+		t = newToken(token.LPAREN, l)
 	case ')' == l.ch:
-		t = newToken(token.RPAREN, l.ch)
+		t = newToken(token.RPAREN, l)
 	case '{' == l.ch:
-		t = newToken(token.LBRACE, l.ch)
+		t = newToken(token.LBRACE, l)
 	case '}' == l.ch:
-		t = newToken(token.RBRACE, l.ch)
+		t = newToken(token.RBRACE, l)
 	case '+' == l.ch:
-		t = newToken(token.PLUS, l.ch)
+		t = newToken(token.PLUS, l)
 	case '-' == l.ch:
-		t = newToken(token.MINUS, l.ch)
+		t = newToken(token.MINUS, l)
 	case '*' == l.ch:
-		t = newToken(token.MULTIPLY, l.ch)
+		t = newToken(token.MULTIPLY, l)
 	case '/' == l.ch:
-		t = newToken(token.DIVIDE, l.ch)
+		t = newToken(token.DIVIDE, l)
 	case '<' == l.ch:
-		t = newToken(token.LESS_THAN, l.ch)
+		t = newToken(token.LESS_THAN, l)
 	case '>' == l.ch:
-		t = newToken(token.GREATER_THAN, l.ch)
+		t = newToken(token.GREATER_THAN, l)
 	case ',' == l.ch:
-		t = newToken(token.COMMA, l.ch)
+		t = newToken(token.COMMA, l)
 	case ';' == l.ch:
-		t = newToken(token.SEMI_COLON, l.ch)
+		t = newToken(token.SEMI_COLON, l)
 	case 0 == l.ch:
 		t.Literal = ""
 		t.Type = token.EOF
@@ -123,7 +148,7 @@ func (l *Lexer) NextToken() token.Token {
 			t.Type = token.LookupIdentifier(t.Literal)
 			return t
 		} else {
-			t = newToken(token.ILLEGAL, l.ch)
+			t = newToken(token.ILLEGAL, l)
 		}
 	}
 
@@ -151,7 +176,7 @@ func (l *Lexer) readInteger() token.Token {
 		l.readChar()
 	}
 
-	return token.Token{Type: token.INTEGER, Literal: l.input[start:l.position]}
+	return token.Token{Type: token.INTEGER, Literal: l.input[start:l.position], Line: l.line, Column: l.column}
 }
 
 func isInteger(ch byte) bool {
@@ -162,6 +187,6 @@ func isWhitespace(ch byte) bool {
 	return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
 }
 
-func newToken(t token.TokenType, literal byte) token.Token {
-	return token.Token{Type: t, Literal: string(literal)}
+func newToken(t token.TokenType, l *Lexer) token.Token {
+	return token.Token{Type: t, Literal: string(l.ch), Line: l.line, Column: l.column}
 }
