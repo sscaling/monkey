@@ -21,33 +21,6 @@ func New(program string) *Lexer {
 	return l
 }
 
-func (l *Lexer) Debug() {
-	charOrWhitespace := func(b rune) byte {
-		if isWhitespace(byte(b)) {
-			return byte(' ')
-		} else {
-			return byte(b)
-		}
-	}
-
-	line := 1
-	column := 0
-	fmt.Printf("\n%05d: ", line)
-	for _, x := range l.input {
-		if x == '\n' {
-			line += 1
-			column = 0
-			fmt.Printf("\n%05d: ", line)
-		} else if column > 0 && column%10 == 0 {
-			fmt.Printf("|%04d|", column)
-		}
-
-		fmt.Printf("%c", charOrWhitespace(x))
-
-		column += 1
-	}
-}
-
 func (l *Lexer) readChar() {
 	// if previous character was a new line, reset position counters
 	if l.ch == '\n' {
@@ -72,11 +45,11 @@ func (l *Lexer) readChar() {
 }
 
 func (l *Lexer) peakChar() byte {
-	if (l.readPosition + 1) >= len(l.input) {
+	if (l.readPosition) >= len(l.input) {
 		return 0
 	}
 
-	return l.input[l.readPosition+1]
+	return l.input[l.readPosition]
 }
 
 func (l *Lexer) eatWhitespace() {
@@ -189,4 +162,31 @@ func isWhitespace(ch byte) bool {
 
 func newToken(t token.TokenType, l *Lexer) token.Token {
 	return token.Token{Type: t, Literal: string(l.ch), Line: l.line, Column: l.column}
+}
+
+func (l *Lexer) Debug() {
+	charOrWhitespace := func(b rune) byte {
+		if isWhitespace(byte(b)) {
+			return byte(' ')
+		} else {
+			return byte(b)
+		}
+	}
+
+	line := 1
+	column := 0
+	fmt.Printf("\n%05d: ", line)
+	for _, x := range l.input {
+		if x == '\n' {
+			line += 1
+			column = 0
+			fmt.Printf("\n%05d: ", line)
+		} else if column > 0 && column%10 == 0 {
+			fmt.Printf("|%04d|", column)
+		}
+
+		fmt.Printf("%c", charOrWhitespace(x))
+
+		column += 1
+	}
 }

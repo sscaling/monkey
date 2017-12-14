@@ -21,22 +21,20 @@ func TestBasicLex(t *testing.T) {
 	let add = fn(x, y) {
 		x + y;
 	};
+
+	let result = add(five, ten);
+	!-/*5;
+	5 < 10 > 5;
+
+	if (5 < 10) {
+		return true;
+	} else {
+		return false;
+	}
+
+	10 == 10;
+	10 != 9;
 	`
-	/*
-		let result = add(five, ten);
-		!-/*5;
-		5 < 10 > 5;
-
-		if (5 < 10) {
-			return true;
-		} else {
-			return false;
-		}
-
-		10 == 10;
-		10 != 9;
-		`
-	*/
 	l := New(input)
 
 	l.Debug()
@@ -55,6 +53,7 @@ func TestBasicLex(t *testing.T) {
 		{token.ASSIGN, "="},
 		{token.INTEGER, "10"},
 		{token.SEMI_COLON, ";"},
+
 		{token.LET, "let"},
 		{token.IDENT, "add"},
 		{token.ASSIGN, "="},
@@ -71,6 +70,60 @@ func TestBasicLex(t *testing.T) {
 		{token.SEMI_COLON, ";"},
 		{token.RBRACE, "}"},
 		{token.SEMI_COLON, ";"},
+
+		{token.LET, "let"},
+		{token.IDENT, "result"},
+		{token.ASSIGN, "="},
+		{token.IDENT, "add"},
+		{token.LPAREN, "("},
+		{token.IDENT, "five"},
+		{token.COMMA, ","},
+		{token.IDENT, "ten"},
+		{token.RPAREN, ")"},
+		{token.SEMI_COLON, ";"},
+
+		{token.NOT, "!"},
+		{token.MINUS, "-"},
+		{token.DIVIDE, "/"},
+		{token.MULTIPLY, "*"},
+		{token.INTEGER, "5"},
+		{token.SEMI_COLON, ";"},
+
+		{token.INTEGER, "5"},
+		{token.LESS_THAN, "<"},
+		{token.INTEGER, "10"},
+		{token.GREATER_THAN, ">"},
+		{token.INTEGER, "5"},
+		{token.SEMI_COLON, ";"},
+
+		{token.IF, "if"},
+		{token.LPAREN, "("},
+		{token.INTEGER, "5"},
+		{token.LESS_THAN, "<"},
+		{token.INTEGER, "10"},
+		{token.RPAREN, ")"},
+		{token.LBRACE, "{"},
+		{token.RETURN, "return"},
+		{token.TRUE, "true"},
+		{token.SEMI_COLON, ";"},
+		{token.RBRACE, "}"},
+		{token.ELSE, "else"},
+		{token.LBRACE, "{"},
+		{token.RETURN, "return"},
+		{token.FALSE, "false"},
+		{token.SEMI_COLON, ";"},
+		{token.RBRACE, "}"},
+
+		{token.INTEGER, "10"},
+		{token.EQUALS, "=="},
+		{token.INTEGER, "10"},
+		{token.SEMI_COLON, ";"},
+
+		{token.INTEGER, "10"},
+		{token.NOT_EQUAL, "!="},
+		{token.INTEGER, "9"},
+		{token.SEMI_COLON, ";"},
+
 		{token.EOF, ""},
 	}
 
