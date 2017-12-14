@@ -8,7 +8,8 @@ import (
 
 type Lexer struct {
 	input        string
-	currPosition int
+	position     int // need to track both position and currPosition for slicing the input data
+	readPosition int
 	ch           byte
 }
 
@@ -18,22 +19,41 @@ func New(program string) *Lexer {
 	return l
 }
 
-func (l *Lexer) readChar() {
-	if l.currPosition >= len(l.input) {
-		l.ch = 0
-		return
+func (l *Lexer) Debug() {
+	charOrWhitespace := func(b rune) byte {
+		if isWhitespace(byte(b)) {
+			return byte(' ')
+		} else {
+			return byte(b)
+		}
 	}
 
-	l.ch = l.input[l.currPosition]
-	l.currPosition += 1
+	for i, x := range l.input {
+
+		if i%8 == 0 {
+			fmt.Printf("\n%05d: ", i)
+		}
+		fmt.Printf("%c ", charOrWhitespace(x))
+	}
+}
+
+func (l *Lexer) readChar() {
+	if l.readPosition >= len(l.input) {
+		l.ch = 0
+	} else {
+		l.ch = l.input[l.readPosition]
+	}
+	// Always set the position and increase the readPosition as this is used for slicing the input data
+	l.position = l.readPosition
+	l.readPosition += 1
 }
 
 func (l *Lexer) peakChar() byte {
-	if (l.currPosition + 1) >= len(l.input) {
+	if (l.readPosition + 1) >= len(l.input) {
 		return 0
 	}
 
-	return l.input[l.currPosition+1]
+	return l.input[l.readPosition+1]
 }
 
 func (l *Lexer) eatWhitespace() {
@@ -113,12 +133,12 @@ func (l *Lexer) NextToken() token.Token {
 }
 
 func (l *Lexer) readIdentifier() string {
-	start := l.currPosition - 1
+	start := l.position
 	for isLetter(l.ch) {
 		l.readChar()
 	}
 
-	return l.input[start:(l.currPosition - 1)]
+	return l.input[start:l.position]
 }
 
 func isLetter(ch byte) bool {
@@ -126,15 +146,12 @@ func isLetter(ch byte) bool {
 }
 
 func (l *Lexer) readInteger() token.Token {
-	start := l.currPosition - 1
+	start := l.position
 	for isInteger(l.ch) {
 		l.readChar()
 	}
 
-	for i, x := range l.input {
-		fmt.Printf("%03d: %c\n", i, x)
-	}
-	return token.Token{Type: token.INTEGER, Literal: l.input[start:(l.currPosition - 1)]}
+	return token.Token{Type: token.INTEGER, Literal: l.input[start:l.position]}
 }
 
 func isInteger(ch byte) bool {

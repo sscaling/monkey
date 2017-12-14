@@ -15,17 +15,62 @@ func TestIllegalChar(t *testing.T) {
 
 func TestBasicLex(t *testing.T) {
 
-	input := `let x = 10`
+	input := `let five = 5;
+	let ten = 10;
+
+	let add = fn(x, y) {
+		x + y;
+	};
+	`
+	/*
+		let result = add(five, ten);
+		!-/*5;
+		5 < 10 > 5;
+
+		if (5 < 10) {
+			return true;
+		} else {
+			return false;
+		}
+
+		10 == 10;
+		10 != 9;
+		`
+	*/
 	l := New(input)
+
+	l.Debug()
 
 	e := []struct {
 		expectedType    token.TokenType
 		expectedLiteral string
 	}{
 		{token.LET, "let"},
-		{token.IDENT, "x"},
+		{token.IDENT, "five"},
+		{token.ASSIGN, "="},
+		{token.INTEGER, "5"},
+		{token.SEMI_COLON, ";"},
+		{token.LET, "let"},
+		{token.IDENT, "ten"},
 		{token.ASSIGN, "="},
 		{token.INTEGER, "10"},
+		{token.SEMI_COLON, ";"},
+		{token.LET, "let"},
+		{token.IDENT, "add"},
+		{token.ASSIGN, "="},
+		{token.FUNCTION, "fn"},
+		{token.LPAREN, "("},
+		{token.IDENT, "x"},
+		{token.COMMA, ","},
+		{token.IDENT, "y"},
+		{token.RPAREN, ")"},
+		{token.RBRACE, "{"},
+		{token.IDENT, "x"},
+		{token.PLUS, "+"},
+		{token.IDENT, "y"},
+		{token.SEMI_COLON, ";"},
+		{token.RBRACE, "}"},
+		{token.SEMI_COLON, ";"},
 		{token.EOF, ""},
 	}
 
