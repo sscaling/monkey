@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/sscaling/monkey/ast"
@@ -35,6 +36,7 @@ let foobar = 838383;
 	}
 
 	for i, tt := range tests {
+		fmt.Printf("Testing '%s'\n", tt.expectedIdentifier)
 		stmt := program.Statements[i]
 
 		if !testLetStatement(t, stmt, tt.expectedIdentifier) {

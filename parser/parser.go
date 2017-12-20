@@ -11,6 +11,8 @@ type Parser struct {
 
 	curToken  token.Token
 	peekToken token.Token
+
+	pos int
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -25,6 +27,7 @@ func New(l *lexer.Lexer) *Parser {
 func (p *Parser) nextToken() {
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
+	p.pos++
 }
 
 func (p *Parser) ParseProgram() *ast.Program {
@@ -32,16 +35,27 @@ func (p *Parser) ParseProgram() *ast.Program {
 
 	program.Statements = []ast.Statement{}
 
-	for p.curToken.Type != token.EOF {
+	currentPos := 0
+	for p.peekToken.Type != token.EOF {
+
 		stmt := p.parseStatement()
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
 		}
+
+		//		fmt.Printf("p.peekToken.Type ? '%#v'. current pos %d vs p.pos %d\n", p.peekToken, currentPos, p.pos)
+		if currentPos == p.pos {
+			return nil
+		}
+
+		currentPos = p.pos
 	}
-	return nil
+
+	return program
 }
 
 func (p *Parser) parseStatement() ast.Statement {
+	//	fmt.Printf("parseStatement:: %+v\n", p)
 
 	// TODO: change to switch
 	if p.curToken.Type == token.LET {
@@ -60,10 +74,13 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 
+	//fmt.Println("parsed identifier")
+	//fmt.Printf("parseLetStatement:: %+v\n", p)
 	s.Name = identifier
 
 	if p.peekToken.Type == token.ASSIGN {
 		p.nextToken()
+		//fmt.Println("parsed ASSIGN")
 	} else {
 		// error
 		return nil
@@ -74,7 +91,11 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		p.nextToken()
 	}
 
-	s.Value = p.parseExpression()
+	p.nextToken()
+
+	//fmt.Printf("Parsed to semi-colon %+v\n", p)
+	//fmt.Printf("Built statement %#v\n", s)
+	//s.Value = p.parseExpression()
 
 	return s
 }
