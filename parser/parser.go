@@ -41,10 +41,10 @@ func (p *Parser) ParseProgram() *ast.Program {
 	return nil
 }
 
-func (p *Parser) parseStatement() *ast.Statement {
+func (p *Parser) parseStatement() ast.Statement {
 
 	// TODO: change to switch
-	if p.curToken == token.LET {
+	if p.curToken.Type == token.LET {
 		return p.parseLetStatement()
 	}
 
@@ -53,7 +53,7 @@ func (p *Parser) parseStatement() *ast.Statement {
 
 // let <ident> = <expr>;
 func (p *Parser) parseLetStatement() *ast.LetStatement {
-	s := &ast.LetStatement{Token: curToken}
+	s := &ast.LetStatement{Token: p.curToken}
 
 	identifier := p.parseIdentifier()
 	if identifier == nil {
@@ -62,7 +62,7 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 
 	s.Name = identifier
 
-	if s.peekToken == token.ASSIGN {
+	if p.peekToken.Type == token.ASSIGN {
 		p.nextToken()
 	} else {
 		// error
@@ -70,7 +70,7 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	}
 
 	// FIXME: Value implementation
-	for !p.curToken == token.SEMICOLON {
+	for p.curToken.Type != token.SEMI_COLON {
 		p.nextToken()
 	}
 
@@ -80,7 +80,7 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 }
 
 func (p *Parser) parseIdentifier() *ast.Identifier {
-	if p.peekToken == token.IDENT {
+	if p.peekToken.Type == token.IDENT {
 		p.nextToken()
 		return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 	}
@@ -90,7 +90,7 @@ func (p *Parser) parseIdentifier() *ast.Identifier {
 	return nil
 }
 
-func (p *Parser) parseExpression() *ast.Expression {
+func (p *Parser) parseExpression() ast.Expression {
 	// what expressions?
 
 	return nil
