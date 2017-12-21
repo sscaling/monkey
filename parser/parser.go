@@ -38,7 +38,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program.Statements = []ast.Statement{}
 
 	currentPos := 0
-	for p.peekToken.Type != token.EOF {
+	for !p.curTokenIs(token.EOF) {
 
 		stmt := p.parseStatement()
 		if stmt != nil {
@@ -57,11 +57,29 @@ func (p *Parser) ParseProgram() *ast.Program {
 	return program
 }
 
+func (p *Parser) curTokenIs(t token.TokenType) bool {
+	return p.curToken.Type == t
+}
+
+func (p *Parser) peekTokenIs(t token.TokenType) bool {
+	return p.peekToken.Type == t
+}
+
+func (p *Parser) expectPeek(t token.TokenType) bool {
+	if p.peekTokenIs(t) {
+		p.nextToken()
+		return true
+	}
+
+	fmt.Errorf("Expected '%v', got '%v'\n", t, p.peekToken.Type)
+	return false
+}
+
 func (p *Parser) parseStatement() ast.Statement {
 	//	fmt.Printf("parseStatement:: %+v\n", p)
 
-	// TODO: change to switch
-	if p.curToken.Type == token.LET {
+	switch p.curToken.Type {
+	case token.LET:
 		return p.parseLetStatement()
 	}
 
@@ -72,46 +90,25 @@ func (p *Parser) parseStatement() ast.Statement {
 func (p *Parser) parseLetStatement() *ast.LetStatement {
 	s := &ast.LetStatement{Token: p.curToken}
 
-	identifier := p.parseIdentifier()
-	if identifier == nil {
+	if !p.expectPeek(token.IDENT) {
+		fmt.Errorf("Expected token.IDENT, got '%v'\n", p.peekToken.Type)
 		return nil
 	}
 
-	//fmt.Println("parsed identifier")
-	//fmt.Printf("parseLetStatement:: %+v\n", p)
-	s.Name = identifier
+	s.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 
-	if p.peekToken.Type == token.ASSIGN {
-		p.nextToken()
-		//fmt.Println("parsed ASSIGN")
-	} else {
-		// error
+	if !p.expectPeek(token.ASSIGN) {
 		return nil
 	}
 
 	// FIXME: Value implementation
-	for p.curToken.Type != token.SEMI_COLON {
+	for !p.curTokenIs(token.SEMI_COLON) {
 		p.nextToken()
 	}
 
 	p.nextToken()
 
-	//fmt.Printf("Parsed to semi-colon %+v\n", p)
-	//fmt.Printf("Built statement %#v\n", s)
-	//s.Value = p.parseExpression()
-
 	return s
-}
-
-func (p *Parser) parseIdentifier() *ast.Identifier {
-	if p.peekToken.Type == token.IDENT {
-		p.nextToken()
-		return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
-	}
-
-	// error?
-
-	return nil
 }
 
 func (p *Parser) parseExpression() ast.Expression {
