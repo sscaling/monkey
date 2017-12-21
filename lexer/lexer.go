@@ -25,7 +25,7 @@ func (l *Lexer) readChar() {
 	// if previous character was a new line, reset position counters
 	if l.ch == '\n' {
 		l.line += 1
-		l.column = 1
+		l.column = 0
 	}
 
 	if l.readPosition >= len(l.input) {
@@ -60,11 +60,11 @@ func (l *Lexer) eatWhitespace() {
 
 func (l *Lexer) NextToken() token.Token {
 
+	l.eatWhitespace()
+
 	var t token.Token
 	t.Line = l.line
 	t.Column = l.column
-
-	l.eatWhitespace()
 
 	switch {
 	case '=' == l.ch:
@@ -114,7 +114,9 @@ func (l *Lexer) NextToken() token.Token {
 		t.Type = token.EOF
 	default:
 		if isInteger(l.ch) {
-			return l.readInteger()
+			t.Literal = l.readInteger()
+			t.Type = token.INTEGER
+			return t
 		} else if isLetter(l.ch) {
 			// return immediately as readIdentifier has already moved onto the next position
 			t.Literal = l.readIdentifier()
@@ -143,13 +145,13 @@ func isLetter(ch byte) bool {
 	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_'
 }
 
-func (l *Lexer) readInteger() token.Token {
+func (l *Lexer) readInteger() string {
 	start := l.position
 	for isInteger(l.ch) {
 		l.readChar()
 	}
 
-	return token.Token{Type: token.INTEGER, Literal: l.input[start:l.position], Line: l.line, Column: l.column}
+	return l.input[start:l.position]
 }
 
 func isInteger(ch byte) bool {
