@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"fmt"
+
 	"github.com/sscaling/monkey/ast"
 	"github.com/sscaling/monkey/lexer"
 	"github.com/sscaling/monkey/token"
@@ -45,6 +47,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 
 		//		fmt.Printf("p.peekToken.Type ? '%#v'. current pos %d vs p.pos %d\n", p.peekToken, currentPos, p.pos)
 		if currentPos == p.pos {
+			fmt.Errorf("Failed to advance tokens. Parsing must have failed! Current Token %#v, Peek Token %#v\n", p.curToken, p.peekToken)
 			return nil
 		}
 
