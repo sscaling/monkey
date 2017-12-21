@@ -1,5 +1,7 @@
 package token
 
+import "fmt"
+
 type TokenType string
 
 type Token struct {
@@ -8,6 +10,14 @@ type Token struct {
 	Position int
 	Line     int
 	Column   int
+}
+
+func (t Token) String() string {
+	return string(t.Type)
+}
+
+func (t Token) Pretty() string {
+	return fmt.Sprintf("%s '%s' [%d:%d]", t.Type, t.Literal, t.Line, t.Column)
 }
 
 const (
