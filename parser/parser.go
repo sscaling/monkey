@@ -61,7 +61,8 @@ func (p *Parser) ParseProgram() *ast.Program {
 
 		//		fmt.Printf("p.peekToken.Type ? '%#v'. current pos %d vs p.pos %d\n", p.peekToken, currentPos, p.pos)
 		if currentPos == p.pos {
-			fmt.Errorf("Failed to advance tokens. Parsing must have failed! Current Token %#v, Peek Token %#v\n", p.curToken, p.peekToken)
+			msg := fmt.Sprintf("Failed to advance tokens. Parsing must have failed! Current Token %#v, Peek Token %#v\n", p.curToken, p.peekToken)
+			p.errors = append(p.errors, msg)
 			return nil
 		}
 
@@ -95,6 +96,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
 	case token.LET:
 		return p.parseLetStatement()
+	case token.RETURN:
+		return p.parseReturnStatement()
 	}
 
 	return nil
@@ -114,18 +117,27 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 
-	// FIXME: Value implementation
-	for !p.curTokenIs(token.SEMI_COLON) {
-		p.nextToken()
-	}
+	p.eatUntilSemiColon()
 
 	p.nextToken()
 
 	return s
 }
 
-func (p *Parser) parseExpression() ast.Expression {
-	// what expressions?
+// return <expr>;
+func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	s := &ast.ReturnStatement{Token: p.curToken}
 
-	return nil
+	p.eatUntilSemiColon()
+
+	p.nextToken()
+
+	return s
+}
+
+// FIXME: implement values
+func (p *Parser) eatUntilSemiColon() {
+	for !p.curTokenIs(token.SEMI_COLON) {
+		p.nextToken()
+	}
 }
