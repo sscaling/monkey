@@ -8,6 +8,22 @@ import (
 	"github.com/sscaling/monkey/token"
 )
 
+const (
+	_ int = iota
+	LOWEST
+	EQUALS      // ==
+	LESSGREATER // < or >
+	SUM         // +
+	PRODUCT     // *
+	PREFIX      // -X or !X
+	CALL        // myFunction(X)
+)
+
+type (
+	prefixParseFn func() ast.Expression
+	infixParseFn  func(ast.Expression) ast.Expression
+)
+
 type Parser struct {
 	l *lexer.Lexer
 
@@ -17,6 +33,9 @@ type Parser struct {
 	errors []string
 
 	pos int
+
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -25,10 +44,21 @@ func New(l *lexer.Lexer) *Parser {
 		errors: []string{},
 	}
 
+	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
+	p.registerPrefix(token.IDENT, p.parseIdentifier)
+
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
 	p.nextToken()
 	return p
+}
+
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
+
+func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
 }
 
 func (p *Parser) Errors() []string {
@@ -98,9 +128,9 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseLetStatement()
 	case token.RETURN:
 		return p.parseReturnStatement()
+	default:
+		return p.parseExpressionStatement()
 	}
-
-	return nil
 }
 
 // let <ident> = <expr>;
@@ -119,8 +149,6 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 
 	p.eatUntilSemiColon()
 
-	p.nextToken()
-
 	return s
 }
 
@@ -130,9 +158,40 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 
 	p.eatUntilSemiColon()
 
-	p.nextToken()
+	return s
+}
+
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	s := &ast.ExpressionStatement{Token: p.curToken}
+
+	s.Expression = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(token.SEMI_COLON) {
+		// make semi-colon next token
+		p.nextToken()
+
+		// FIXME:
+		p.eatUntilSemiColon()
+
+	}
 
 	return s
+}
+
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	prefix := p.prefixParseFns[p.curToken.Type]
+
+	if prefix == nil {
+		return nil
+	}
+
+	leftExp := prefix()
+
+	return leftExp
+}
+
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
 
 // FIXME: implement values
@@ -140,4 +199,5 @@ func (p *Parser) eatUntilSemiColon() {
 	for !p.curTokenIs(token.SEMI_COLON) {
 		p.nextToken()
 	}
+	p.nextToken()
 }
