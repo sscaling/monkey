@@ -2,6 +2,7 @@ package ast
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/sscaling/monkey/token"
 )
@@ -145,4 +146,20 @@ func (il *IntegerLiteral) TokenLiteral() string {
 }
 func (il *IntegerLiteral) String() string {
 	return il.Token.Literal
+}
+
+// --------- PREFIX EXPRESSION ----
+
+type PrefixExpression struct {
+	Token    token.Token
+	Operator string
+	Right    Expression
+}
+
+func (pe *PrefixExpression) expressionNode() {}
+func (pe *PrefixExpression) TokenLiteral() string {
+	return pe.Token.Literal
+}
+func (pe *PrefixExpression) String() string {
+	return fmt.Sprintf("(%s%s)", pe.Operator, pe.Right)
 }
