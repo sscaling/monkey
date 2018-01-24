@@ -82,7 +82,7 @@ func TestBasicLex(t *testing.T) {
 		{token.RPAREN, ")"},
 		{token.SEMI_COLON, ";"},
 
-		{token.NOT, "!"},
+		{token.BANG, "!"},
 		{token.MINUS, "-"},
 		{token.DIVIDE, "/"},
 		{token.MULTIPLY, "*"},

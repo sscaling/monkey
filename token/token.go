@@ -26,7 +26,7 @@ const (
 
 	ASSIGN       = "="
 	EQUALS       = "=="
-	NOT          = "!"
+	BANG         = "!"
 	NOT_EQUAL    = "!="
 	PLUS         = "+"
 	MINUS        = "-"

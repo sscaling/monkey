@@ -81,7 +81,7 @@ func (l *Lexer) NextToken() token.Token {
 			t.Type = token.NOT_EQUAL
 			t.Literal = "!="
 		} else {
-			t = newToken(token.NOT, l)
+			t = newToken(token.BANG, l)
 		}
 	case '+' == l.ch:
 		t = newToken(token.PLUS, l)
