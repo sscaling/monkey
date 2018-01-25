@@ -2,7 +2,11 @@ package parser
 
 import (
 	"fmt"
+	"reflect"
+	"regexp"
+	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/sscaling/monkey/ast"
 	"github.com/sscaling/monkey/lexer"
@@ -39,6 +43,10 @@ type Parser struct {
 	infixParseFns  map[token.TokenType]infixParseFn
 }
 
+func (p *Parser) Summary() string {
+	return fmt.Sprintf("Current: %s {%s}, Peek: %s {%s} [%d:%d]\n", p.curToken, p.curToken.Literal, p.peekToken, p.peekToken.Literal, p.curToken.Line, p.curToken.Column)
+}
+
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{
 		l:      l,
@@ -50,6 +58,16 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.INTEGER, p.parseIntegerLiteral)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+
+	p.infixParseFns = make(map[token.TokenType]infixParseFn)
+	p.registerInfix(token.PLUS, p.parseInfixExpression)
+	p.registerInfix(token.MINUS, p.parseInfixExpression)
+	p.registerInfix(token.DIVIDE, p.parseInfixExpression)
+	p.registerInfix(token.MULTIPLY, p.parseInfixExpression)
+	p.registerInfix(token.EQUALS, p.parseInfixExpression)
+	p.registerInfix(token.NOT_EQUAL, p.parseInfixExpression)
+	p.registerInfix(token.LESS_THAN, p.parseInfixExpression)
+	p.registerInfix(token.GREATER_THAN, p.parseInfixExpression)
 
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
@@ -63,6 +81,33 @@ func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
 
 func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
 	p.infixParseFns[tokenType] = fn
+}
+
+var precedences = map[token.TokenType]int{
+	token.EQUALS:       EQUALS,
+	token.NOT_EQUAL:    EQUALS,
+	token.LESS_THAN:    LESSGREATER,
+	token.GREATER_THAN: LESSGREATER,
+	token.PLUS:         SUM,
+	token.MINUS:        SUM,
+	token.DIVIDE:       PRODUCT,
+	token.MULTIPLY:     PRODUCT,
+}
+
+func (p *Parser) peekPrecedence() int {
+	if p, ok := precedences[p.peekToken.Type]; ok {
+		return p
+	}
+
+	return LOWEST
+}
+
+func (p *Parser) curPrecedence() int {
+	if p, ok := precedences[p.curToken.Type]; ok {
+		return p
+	}
+
+	return LOWEST
 }
 
 func (p *Parser) Errors() []string {
@@ -94,6 +139,9 @@ func (p *Parser) ParseProgram() *ast.Program {
 	for !p.curTokenIs(token.EOF) {
 
 		stmt := p.parseStatement()
+
+		//		fmt.Printf("\nParsed statement\n%#v\n\n", stmt)
+
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
 		}
@@ -106,6 +154,9 @@ func (p *Parser) ParseProgram() *ast.Program {
 		}
 
 		currentPos = p.pos
+
+		// should this be here or after currentPos assignment
+		p.nextToken()
 	}
 
 	return program
@@ -129,8 +180,20 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 	return false
 }
 
+var debug bool = false
+var indent int = 0
+
+func tabs() string {
+	return strings.Join(make([]string, indent*4), " ")
+}
+
 func (p *Parser) parseStatement() ast.Statement {
-	//	fmt.Printf("parseStatement:: %+v\n", p)
+	if debug {
+		fmt.Printf("%sparseStatement:: %s\n", tabs(), p.Summary())
+	}
+
+	indent++
+	defer func() { indent-- }()
 
 	switch p.curToken.Type {
 	case token.LET:
@@ -140,6 +203,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	default:
 		return p.parseExpressionStatement()
 	}
+
 }
 
 // let <ident> = <expr>;
@@ -171,9 +235,17 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 }
 
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	if debug {
+		fmt.Printf("%sparseExpressionStatement %s\n", tabs(), p.Summary())
+	}
+
 	s := &ast.ExpressionStatement{Token: p.curToken}
 
+	indent++
 	s.Expression = p.parseExpression(LOWEST)
+	indent--
+
+	//	fmt.Printf("Parsed expression '%#v'.\nParser state: '%#v'\n", s.Expression, p)
 
 	if p.peekTokenIs(token.SEMI_COLON) {
 		// make semi-colon next token
@@ -186,24 +258,61 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return s
 }
 
+func fnName(f interface{}) string {
+	//	 github.com/sscaling/monkey/parser.(*Parser).(github.com/sscaling/monkey/parser.parsePrefixExpression)-fm
+	n := runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
+	p := regexp.MustCompile(`^.*\.(.*)\).*$`)
+	return p.ReplaceAllString(n, "$1")
+}
+
 func (p *Parser) parseExpression(precedence int) ast.Expression {
+	if debug {
+		fmt.Printf("%sparseExpression(%d) : %s\n", tabs(), precedence, p.Summary())
+	}
+
 	prefix := p.prefixParseFns[p.curToken.Type]
+
+	if debug {
+		fmt.Printf("%sFound prefix fn = %s.(%T)\n", tabs(), fnName(prefix), prefix)
+	}
 
 	if prefix == nil {
 		p.noPrefixParseFnError(p.curToken.Type)
 		return nil
 	}
 
+	indent++
 	leftExp := prefix()
+	indent--
+
+	for !p.peekTokenIs(token.SEMI_COLON) && precedence < p.peekPrecedence() {
+		//		fmt.Printf("  traversing tokens looking for infix operations, curToken %v\n", p.curToken)
+		infix := p.infixParseFns[p.peekToken.Type]
+		if infix == nil {
+			return leftExp
+		}
+
+		p.nextToken()
+
+		indent++
+		leftExp = infix(leftExp)
+		indent--
+	}
 
 	return leftExp
 }
 
 func (p *Parser) parseIdentifier() ast.Expression {
+	if debug {
+		fmt.Printf("%sFound identifier %q\n", tabs(), p.curToken.Literal)
+	}
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
 
 func (p *Parser) parseIntegerLiteral() ast.Expression {
+	if debug {
+		fmt.Printf("%sFound integer %q\n", tabs(), p.curToken.Literal)
+	}
 	e := &ast.IntegerLiteral{Token: p.curToken}
 
 	// if base == 0, the prefix of the string determines the base (i.e. 0x etc)
@@ -220,16 +329,46 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 }
 
 func (p *Parser) parsePrefixExpression() ast.Expression {
-	exp := &ast.PrefixExpression{
+	expr := &ast.PrefixExpression{
 		Token:    p.curToken,
 		Operator: p.curToken.Literal,
 	}
 
+	if debug {
+		fmt.Printf("%sparsePrefixExpression %s\n", tabs(), p.Summary())
+	}
+
 	p.nextToken()
 
-	exp.Right = p.parseExpression(PREFIX)
+	//	fmt.Printf("parsed prefix expression. Parser: %v\n", p)
 
-	return exp
+	indent++
+	expr.Right = p.parseExpression(PREFIX)
+	indent--
+
+	return expr
+}
+
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	expr := &ast.InfixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+		Left:     left,
+	}
+
+	precedence := p.curPrecedence()
+
+	if debug {
+		fmt.Printf("%sparseInfixExpression %s\n", tabs(), p.Summary())
+	}
+
+	p.nextToken()
+
+	indent++
+	expr.Right = p.parseExpression(precedence)
+	indent--
+
+	return expr
 }
 
 // FIXME: implement values
@@ -237,5 +376,4 @@ func (p *Parser) eatUntilSemiColon() {
 	for !p.curTokenIs(token.SEMI_COLON) {
 		p.nextToken()
 	}
-	p.nextToken()
 }
